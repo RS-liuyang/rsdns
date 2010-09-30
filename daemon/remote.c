@@ -73,6 +73,7 @@
 #include "iterator/iter_delegpt.h"
 #include "services/outbound_list.h"
 #include "services/outside_network.h"
+#include "util/va/nxrcontrol.h"
 
 #ifdef HAVE_SYS_TYPES_H
 #  include <sys/types.h>
@@ -1728,6 +1729,8 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd,
 		do_set_option(ssl, worker, skipwhite(p+10));
 	} else if(strncmp(p, "get_option", 10) == 0) {
 		do_get_option(ssl, worker, skipwhite(p+10));
+	} else if(strncmp(p, "rsia", 4) == 0) {
+		do_rsia_cmd(ssl, worker, p);
 	} else {
 		(void)ssl_printf(ssl, "error unknown command '%s'\n", p);
 	}

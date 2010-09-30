@@ -86,6 +86,12 @@
 #  include "winrc/win_svc.h"
 #endif
 
+/*vaadd */
+#define RS_MAIN 1
+#include "util/va/nxglobal.h"
+
+struct nx_global g_nx;
+
 /** global debug value to keep track of heap memory allocation */
 void* unbound_start_brk = 0;
 
@@ -632,6 +638,9 @@ run_daemon(const char* cfgfile, int cmdline_verbose, int debug_mode)
 			if(!cfg->use_syslog)
 				log_init(cfg->logfile, 0, cfg->chrootdir);
 		}
+
+		nx_global_int(&g_nx);
+
 		/* work */
 		daemon_fork(daemon);
 

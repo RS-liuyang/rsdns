@@ -48,6 +48,8 @@
 #include "util/log.h"
 #include "util/regional.h"
 #include "util/net_help.h"
+#include "util/va/nxredirect.h"
+#include "util/va/nxrdata.h"
 
 /** return code that means the function ran out of memory. negative so it does
  * not conflict with DNS rcodes. */
@@ -679,6 +681,138 @@ reply_info_encode(struct query_info* qinfo, struct reply_info* rep,
 	return 1;
 }
 
+#ifdef RS_MAIN
+
+static int
+insert_nx_answer_section(ldns_buffer* buffer, uint32_t timenow, 
+	struct regional* region, struct compress_tree_node** tree,
+	struct query_info* qinfo, int dnssec)
+{
+	int r;
+	size_t i, setstart;
+	uint16_t num_rrs;
+	struct ub_packed_rrset_key* key = NULL;
+
+	setstart = ldns_buffer_position(buffer);
+
+/*
+	if((r=packed_nx_rrset_encode(buffer,
+		timenow, region, tree, qinfo, dnssec))
+*/
+	key = get_nx_rrset_key(qinfo, region, timenow);
+	if((r=packed_rrset_encode(key, 
+		buffer, &num_rrs, timenow, region, 1, 1, tree,
+		LDNS_SECTION_ANSWER, qinfo->qtype, dnssec))	
+		!= RETVAL_OK)
+	{
+		ldns_buffer_set_position(buffer, setstart);
+		return r;
+	}
+
+	return RETVAL_OK;
+}
+
+
+int 
+nx_reply_info_encode(struct query_info* qinfo, struct reply_info* rep, 
+	uint16_t id, uint16_t flags, ldns_buffer* buffer, uint32_t timenow, 
+	struct regional* region, uint16_t udpsize, int dnssec)
+{
+	uint16_t ancount=0, nscount=0, arcount=0;
+	uint16_t nx_flags;
+	struct compress_tree_node* tree = 0;
+	int r;
+
+	ldns_buffer_clear(buffer);
+	if(udpsize < ldns_buffer_limit(buffer))
+		ldns_buffer_set_limit(buffer, udpsize);
+	if(ldns_buffer_remaining(buffer) < LDNS_HEADER_SIZE)
+		return 0;
+
+	ldns_buffer_write(buffer, &id, sizeof(uint16_t));
+
+	//change flags
+	nx_flags = flags;
+	FLAGS_SET_RCODE(nx_flags, LDNS_RCODE_NOERROR);
+
+	ldns_buffer_write_u16(buffer, nx_flags);
+	//end change
+
+	ldns_buffer_write_u16(buffer, rep->qdcount);
+
+	/* set an, ns, ar counts to zero in case of small packets */
+	ldns_buffer_write(buffer, "\000\000\000\000\000\000", 6);
+
+	/* insert query section */
+	if(rep->qdcount) {
+		if((r=insert_query(qinfo, &tree, buffer, region)) != 
+			RETVAL_OK) {
+			if(r == RETVAL_TRUNC) {
+				/* create truncated message */
+				ldns_buffer_write_u16_at(buffer, 4, 0);
+				LDNS_TC_SET(ldns_buffer_begin(buffer));
+				ldns_buffer_flip(buffer);
+				return 1;
+			}
+			return 0;
+		}
+	}
+
+	//change answer section insertion
+	//here
+	ancount = 1;
+	if(r=insert_nx_answer_section(buffer, timenow, region, &tree, 
+		qinfo, dnssec) != RETVAL_OK)
+	{
+		if(r == RETVAL_TRUNC) {
+			/* create truncated message */
+			ldns_buffer_write_u16_at(buffer, 6, ancount);
+			LDNS_TC_SET(ldns_buffer_begin(buffer));
+			ldns_buffer_flip(buffer);
+			return 1;
+		}
+		return 0;		
+	}
+	ldns_buffer_write_u16_at(buffer, 6, ancount);
+
+	
+
+	/* insert auth section */
+	if((r=insert_section(rep, rep->ns_numrrsets, &nscount, buffer, 
+		rep->an_numrrsets, timenow, region, &tree,
+		LDNS_SECTION_AUTHORITY, qinfo->qtype, dnssec)) != RETVAL_OK) {
+		if(r == RETVAL_TRUNC) {
+			/* create truncated message */
+			ldns_buffer_write_u16_at(buffer, 8, nscount);
+			LDNS_TC_SET(ldns_buffer_begin(buffer));
+			ldns_buffer_flip(buffer);
+			return 1;
+		}
+		return 0;
+	}
+	ldns_buffer_write_u16_at(buffer, 8, nscount);
+
+	/* insert add section */
+	if((r=insert_section(rep, rep->ar_numrrsets, &arcount, buffer, 
+		rep->an_numrrsets + rep->ns_numrrsets, timenow, region, 
+		&tree, LDNS_SECTION_ADDITIONAL, qinfo->qtype, 
+		dnssec)) != RETVAL_OK) {
+		if(r == RETVAL_TRUNC) {
+			/* no need to set TC bit, this is the additional */
+			ldns_buffer_write_u16_at(buffer, 10, arcount);
+			ldns_buffer_flip(buffer);
+			return 1;
+		}
+		return 0;
+	}
+	ldns_buffer_write_u16_at(buffer, 10, arcount);
+	ldns_buffer_flip(buffer);
+	return 1;
+}
+
+#endif
+
+
 uint16_t
 calc_edns_field_size(struct edns_data* edns)
 {
@@ -719,6 +853,7 @@ reply_info_answer_encode(struct query_info* qinf, struct reply_info* rep,
 {
 	uint16_t flags;
 	int attach_edns = 1;
+	int nx_flag = 0;
 
 	if(!cached || rep->authoritative) {
 		/* original flags, copy RD and CD bits from query. */
@@ -740,11 +875,27 @@ reply_info_answer_encode(struct query_info* qinf, struct reply_info* rep,
 		udpsize -= calc_edns_field_size(edns);
 	}
 
-	if(!reply_info_encode(qinf, rep, id, flags, pkt, timenow, region,
-		udpsize, dnssec)) {
-		log_err("reply encode: out of memory");
-		return 0;
+#ifdef RS_MAIN
+	if(nx_flag)
+	{
+		if(!nx_reply_info_encode(qinf, rep, id, flags, pkt, timenow, region,
+			udpsize, dnssec)) {
+			log_err("reply encode: out of memory");
+			return 0;
+		}
+
 	}
+	else
+#endif
+	{
+		if(!reply_info_encode(qinf, rep, id, flags, pkt, timenow, region,
+			udpsize, dnssec)) {
+			log_err("reply encode: out of memory");
+			return 0;
+		}
+
+	}
+
 	if(attach_edns)
 		attach_edns_record(pkt, edns);
 	return 1;

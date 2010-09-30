@@ -90,10 +90,11 @@ endif
 
 COMMON_SRC=$(patsubst $(srcdir)/%,%, $(wildcard $(srcdir)/services/*.c \
 	$(srcdir)/services/cache/*.c $(srcdir)/util/*.c \
-	$(srcdir)/util/data/*.c $(srcdir)/util/storage/*.c $(srcdir)/util/va/*.c \
+	$(srcdir)/util/data/*.c $(srcdir)/util/storage/*.c \
 	$(srcdir)/iterator/*.c $(srcdir)/validator/*.c $(PYTHONMOD_SRC))) \
 	util/configparser.c util/configlexer.c $(CHECKLOCK_SRC)
 COMMON_OBJ=$(addprefix $(BUILD),$(COMMON_SRC:.c=.lo))
+VA_SRC=$($(srcdir)/util/va/*.c)
 COMPAT_SRC=$(addprefix compat/,$(LIBOBJS:.o=.c))
 COMPAT_OBJ=$(addprefix $(BUILD)compat/,$(LIBOBJS:.o=.lo))
 UNITTEST_SRC=$(patsubst $(srcdir)/%,%, \
@@ -102,7 +103,7 @@ UNITTEST_SRC=$(patsubst $(srcdir)/%,%, \
 	$(COMMON_SRC)
 UNITTEST_OBJ=$(addprefix $(BUILD),$(UNITTEST_SRC:.c=.lo)) $(COMPAT_OBJ)
 DAEMON_SRC=$(patsubst $(srcdir)/%,%, $(wildcard $(srcdir)/daemon/*.c)) \
-	$(COMMON_SRC)
+	$(COMMON_SRC) $(VA_SRC)
 DAEMON_OBJ=$(addprefix $(BUILD),$(DAEMON_SRC:.c=.lo)) $(COMPAT_OBJ)
 CHECKCONF_SRC=smallapp/unbound-checkconf.c smallapp/worker_cb.c $(COMMON_SRC)
 CHECKCONF_OBJ=$(addprefix $(BUILD),$(CHECKCONF_SRC:.c=.lo)) $(COMPAT_OBJ)
@@ -141,7 +142,7 @@ ALL_SRC=$(sort $(COMMON_SRC) $(UNITTEST_SRC) $(DAEMON_SRC) \
 	$(TESTBOUND_SRC) $(LOCKVERIFY_SRC) $(PKTVIEW_SRC) $(SIGNIT_SRC) \
 	$(MEMSTATS_SRC) $(CHECKCONF_SRC) $(LIBUNBOUND_SRC) $(HOST_SRC) \
 	$(ASYNCLOOK_SRC) $(STREAMTCP_SRC) $(PERF_SRC) $(DELAYER_SRC) \
-	$(HARVEST_SRC) $(CONTROL_SRC))
+	$(HARVEST_SRC) $(CONTROL_SRC)) $(VA_SRC)
 ALL_OBJ=$(addprefix $(BUILD),$(ALL_SRC:.c=.lo) \
 	$(addprefix compat/,$(LIBOBJS:.o=.lo))) $(COMPAT_OBJ)
 

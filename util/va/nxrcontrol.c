@@ -5,6 +5,9 @@
 #include "util/va/nxglobal.h"
 #include "util/log.h"
 
+#ifdef HAVE_OPENSSL_ERR_H
+#include <openssl/err.h>
+#endif
 
 static const unsigned char charmap[] = {
 	0000, 0001, 0002, 0003, 0004, 0005, 0006, 0007,
