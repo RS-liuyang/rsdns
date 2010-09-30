@@ -90,7 +90,7 @@ endif
 
 COMMON_SRC=$(patsubst $(srcdir)/%,%, $(wildcard $(srcdir)/services/*.c \
 	$(srcdir)/services/cache/*.c $(srcdir)/util/*.c \
-	$(srcdir)/util/data/*.c $(srcdir)/util/storage/*.c \
+	$(srcdir)/util/data/*.c $(srcdir)/util/storage/*.c $(srcdir)/util/va/*.c \
 	$(srcdir)/iterator/*.c $(srcdir)/validator/*.c $(PYTHONMOD_SRC))) \
 	util/configparser.c util/configlexer.c $(CHECKLOCK_SRC)
 COMMON_OBJ=$(addprefix $(BUILD),$(COMMON_SRC:.c=.lo))
