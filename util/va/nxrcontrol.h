@@ -29,11 +29,13 @@ int ns_server_rsia_sonata(SSL* ssl, struct worker* worker, char* arg);
 int 
 command_compare(const char* text, const char* command);
 
+/*
 int
 strcasecmp(const char *s1, const char *s2);
 
 int
 strncasecmp(const char *s1, const char *s2, unsigned int n);
+*/
 
 char *
 next_token(char **stringp, const char *delim);

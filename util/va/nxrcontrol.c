@@ -251,6 +251,7 @@ int command_compare(const char* text, const char* command)
 	return (0);	
 }
 
+/*
 int
 strcasecmp(const char *s1, const char *s2) {
 	const unsigned char *cm = charmap,
@@ -280,6 +281,7 @@ strncasecmp(const char *s1, const char *s2, unsigned int n) {
 	return (0);
 }
 
+*/
 
 char *
 next_token(char **stringp, const char *delim) {

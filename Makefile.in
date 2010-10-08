@@ -94,7 +94,7 @@ COMMON_SRC=$(patsubst $(srcdir)/%,%, $(wildcard $(srcdir)/services/*.c \
 	$(srcdir)/iterator/*.c $(srcdir)/validator/*.c $(PYTHONMOD_SRC))) \
 	util/configparser.c util/configlexer.c $(CHECKLOCK_SRC)
 COMMON_OBJ=$(addprefix $(BUILD),$(COMMON_SRC:.c=.lo))
-VA_SRC=$($(srcdir)/util/va/*.c)
+VA_SRC=$(wildcard $(srcdir)/util/va/*.c)
 COMPAT_SRC=$(addprefix compat/,$(LIBOBJS:.o=.c))
 COMPAT_OBJ=$(addprefix $(BUILD)compat/,$(LIBOBJS:.o=.lo))
 UNITTEST_SRC=$(patsubst $(srcdir)/%,%, \
