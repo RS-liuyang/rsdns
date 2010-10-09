@@ -11,5 +11,8 @@ struct nx_global
 
 void nx_global_int(struct nx_global* g);
 
+#ifndef RS_MAIN
+struct nx_global g_nx;
+#endif
 
 #endif

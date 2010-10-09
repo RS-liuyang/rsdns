@@ -50,6 +50,9 @@
 #include "util/net_help.h"
 #include "util/va/nxredirect.h"
 #include "util/va/nxrdata.h"
+#include "util/va/nxglobal.h"
+
+extern struct nx_global g_nx;
 
 /** return code that means the function ran out of memory. negative so it does
  * not conflict with DNS rcodes. */
@@ -681,7 +684,7 @@ reply_info_encode(struct query_info* qinfo, struct reply_info* rep,
 	return 1;
 }
 
-#ifdef RS_MAIN
+//#ifdef RS_MAIN
 
 static int
 insert_nx_answer_section(ldns_buffer* buffer, uint32_t timenow, 
@@ -810,7 +813,7 @@ nx_reply_info_encode(struct query_info* qinfo, struct reply_info* rep,
 	return 1;
 }
 
-#endif
+//#endif
 
 
 uint16_t
@@ -875,7 +878,8 @@ reply_info_answer_encode(struct query_info* qinf, struct reply_info* rep,
 		udpsize -= calc_edns_field_size(edns);
 	}
 
-#ifdef RS_MAIN
+//#ifdef RS_MAIN
+	nx_flag = nx_reply(qinf, flags);
 	if(nx_flag)
 	{
 		if(!nx_reply_info_encode(qinf, rep, id, flags, pkt, timenow, region,
@@ -886,7 +890,7 @@ reply_info_answer_encode(struct query_info* qinf, struct reply_info* rep,
 
 	}
 	else
-#endif
+//#endif
 	{
 		if(!reply_info_encode(qinf, rep, id, flags, pkt, timenow, region,
 			udpsize, dnssec)) {
