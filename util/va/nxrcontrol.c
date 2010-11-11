@@ -138,7 +138,7 @@ int ns_server_rsia_start(SSL* ssl, char* arg)
 		return -1;
 	
 	p_ipaddr = next_token(&input, " \t");
-	if(ptr == NULL)
+	if(p_ipaddr == NULL)
 		return -1;
 
 	factor = atoi(input);
